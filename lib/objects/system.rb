@@ -85,9 +85,14 @@ class System
           exit
         end
       end
+
       # use from the top of the randomised list
       selected = search_list[0]
-      selected_modules.push selected
+
+      # add any modules that the selected module requires
+      dependencies = selected.select_required_modules(search_list, selected_modules)
+
+      selected_modules = selected_modules + dependencies + selected
 
       Print.std "Selected module: #{selected.attributes['name'][0]} (#{selected.module_path})"
     end
