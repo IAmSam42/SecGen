@@ -10,6 +10,7 @@ class Module
   # XML validity ensures valid and complete information.
 
   attr_accessor :conflicts
+  attr_accessor :requires
   attr_accessor :puppet_file
   attr_accessor :puppet_other_path
 
@@ -17,6 +18,7 @@ class Module
   def initialize(module_type)
     self.module_type = module_type
     self.conflicts = []
+    self.requires = []
     self.attributes = {}
     self.attributes[:module_type] = module_type # add as an attribute for filtering
   end
@@ -27,6 +29,7 @@ class Module
     #{module_type}: #{module_path}
       attributes: #{attributes.inspect}
       conflicts: #{conflicts.inspect}
+      requires: #{requires.inspect}
       puppet file: #{puppet_file}
       puppet path: #{puppet_other_path}
     END
@@ -38,6 +41,7 @@ class Module
     # #{module_type}: #{module_path}
     #   attributes: #{attributes.inspect}
     #   conflicts: #{conflicts.inspect}
+    #   requires: #{requires.inspect}
     END
   end
 
@@ -104,6 +108,37 @@ class Module
       end
     end
     false
+  end
+
+
+
+  def select_required_modules(available_modules, selected_modules)
+    modules_to_add = []
+    available_modules_rnd = available_modules.clone.shuffle!
+
+
+    available_modules_rnd.each do |possible_module_selection|
+
+      # for each requirement
+      self.requires.each do |requires|
+        # if possible_module_selection.
+
+        if possible_module_selection.attributes["#{conflict_key}"] != nil
+          # for each corresponding value in the previously selected module
+          other_module.attributes["#{conflict_key}"].each do |value|
+            # for each value in the conflict list
+            conflict["#{conflict_key}"].each do |conflict_value|
+              if Regexp.new(conflict_value).match(value)
+                key_matched = true
+              end
+            end
+          end
+        end
+
+      end
+    end
+
+    modules_to_add
   end
 
 end
