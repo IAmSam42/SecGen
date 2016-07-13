@@ -6,7 +6,7 @@ class Module
   attr_accessor :module_type # vulnerability|service
   attr_accessor :attributes  # attributes are hashes that contain arrays of values
   # Each attribute is stored in a hash containing an array of values (because elements such as author can repeat).
-  # For module *selectors*, filters are stored directly in the attributes hash rather than as an array of values.
+  # Module *selectors*, store filters in the attributes hash.
   # XML validity ensures valid and complete information.
 
   attr_accessor :conflicts
@@ -20,7 +20,7 @@ class Module
     self.conflicts = []
     self.requires = []
     self.attributes = {}
-    self.attributes[:module_type] = module_type # add as an attribute for filtering
+    # self.attributes["module_type"] = module_type # add as an attribute for filtering
   end
 
   # @return [Object] a string for console output
@@ -80,65 +80,46 @@ class Module
   def conflicts_with(other_module)
     # for each conflict
     self.conflicts.each do |conflict|
-      all_conflict_conditions_met = true
-      # for each conflict hash key for a single conflict
-      conflict.keys.each do |conflict_key|
-        key_matched = false
-        # all_conflict_conditions_met = true
-        # does that conflict with selected modules?
-
-        if other_module.attributes["#{conflict_key}"] != nil
-          # for each corresponding value in the previously selected module
-          other_module.attributes["#{conflict_key}"].each do |value|
-            # for each value in the conflict list
-            conflict["#{conflict_key}"].each do |conflict_value|
-              if Regexp.new(conflict_value).match(value)
-                key_matched = true
-              end
-            end
-          end
-        end
-        # any failure to match a conflict
-        unless key_matched
-          all_conflict_conditions_met = false
-        end
-      end
-      if all_conflict_conditions_met
+      if other_module.matches_attributes_requirement(conflict)
         return true
       end
     end
     false
   end
 
+  def matches_attributes_requirement(required)
+    # Print.err "Checking if this module (#{self.module_path}) matches #{required.inspect}"
+    all_conditions_met = true
+    required.keys.each do |require_key|
+      # Print.err "BBB #{require_key.inspect}"
+      # Print.err "CC #{self.inspect}"
 
+      key_matched = false
 
-  def select_required_modules(available_modules, selected_modules)
-    modules_to_add = []
-    available_modules_rnd = available_modules.clone.shuffle!
+      if self.attributes["#{require_key}"] != nil
+        # for each corresponding value in the previously selected module
+        self.attributes["#{require_key}"].each do |value|
+          # for each value in the required list
+          required["#{require_key}"].each do |required_value|
+            # Print.verbose "comparing #{value} and #{required_value}"
 
-
-    available_modules_rnd.each do |possible_module_selection|
-
-      # for each requirement
-      self.requires.each do |requires|
-        # if possible_module_selection.
-
-        if possible_module_selection.attributes["#{conflict_key}"] != nil
-          # for each corresponding value in the previously selected module
-          other_module.attributes["#{conflict_key}"].each do |value|
-            # for each value in the conflict list
-            conflict["#{conflict_key}"].each do |conflict_value|
-              if Regexp.new(conflict_value).match(value)
-                key_matched = true
-              end
+            if Regexp.new(required_value).match(value)
+              key_matched = true
             end
           end
         end
-
+      end
+      # any failure to match
+      unless key_matched
+        return false
       end
     end
+    # Print.err "returning #{all_conditions_met}"
+    all_conditions_met
+  end
 
-    modules_to_add
+  def printable_name
+    "#{self.attributes['name'][0]} (#{self.module_path})"
   end
 
 end

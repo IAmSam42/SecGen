@@ -19,9 +19,9 @@
   <!--<cve></cve>-->
   <cvss_base_score>6.6</cvss_base_score>
   <cvss_vector>AV:L/AC:M/Au:S/C:C/I:C/A:C</cvss_vector>
-  <reference></reference>
-  <software_name>nfsd</software_name>
-  <software_license>GPLv2</software_license>
+  <!--<reference></reference>-->
+  <!--<software_name></software_name>-->
+  <!--<software_license></software_license>-->
 
   <!--optional breadcrumb (info that is leaked and required to exploit)-->
   <!--<breadcrumb></breadcrumb>-->
@@ -36,7 +36,13 @@
     <author>Lewis Ardern</author>
   </conflict>
   <conflict>
+    <!-- for testing purposes, TODO: remove me soon -->
     <type>ftp</type>
   </conflict>
+  <requires>
+    <!-- for testing purposes, TODO: remove me soon -->
+    <type>httpd</type>
+    <software_name>apache</software_name>
+  </requires>
 
 </vulnerability>

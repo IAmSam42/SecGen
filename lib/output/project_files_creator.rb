@@ -2,7 +2,7 @@ require 'erb'
 require_relative '../helpers/constants.rb'
 require_relative 'xml_report_generator.rb'
 require 'fileutils'
-require 'librarian'
+#TODO require 'librarian'
 
 class ProjectFilesCreator
 # Creates project directory, uses .erb files to create a report and the vagrant file that will be used

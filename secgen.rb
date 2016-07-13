@@ -68,7 +68,7 @@ def build_config(scenario, out_dir)
   creator = ProjectFilesCreator.new(systems, out_dir, scenario)
   creator.write_files
 
-  Print.info "Project files created."
+  Print.info 'Project files created.'
 end
 
 # Builds the vm via the vagrant file in the project dir
@@ -76,7 +76,7 @@ end
 def build_vms(project_dir)
   Print.info "Building project: #{project_dir}"
   GemExec.exe('vagrant', project_dir, 'up')
-  Print.info "VMs created."
+  Print.info 'VMs created.'
 end
 
 # Runs methods to run and configure a new vm from the configuration file
