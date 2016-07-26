@@ -40,6 +40,7 @@
         <xs:element name="conflict" minOccurs="0" maxOccurs="unbounded">
           <xs:complexType>
             <xs:sequence>
+              <xs:element name="module_path" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
               <xs:element name="name" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
               <xs:element name="author" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
               <xs:element name="module_license" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
@@ -60,6 +61,7 @@
         <xs:element name="requires" minOccurs="0" maxOccurs="unbounded">
           <xs:complexType>
             <xs:sequence>
+              <xs:element name="module_path" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
               <xs:element name="name" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
               <xs:element name="author" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
               <xs:element name="module_license" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>

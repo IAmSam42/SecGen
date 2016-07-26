@@ -29,67 +29,86 @@ class System
 
     # for each module specified in the scenario
     module_selectors.each do |module_filter|
-      # select based on selected type, access, cve...
-
-      search_list = available_modules.clone
-      # shuffle order of available vulnerabilities
-      search_list.shuffle!
-
-      # remove any not the type of module we are adding (vulnerabilty/service)
-      search_list.delete_if{|x| "#{x.module_type}_selecter" != module_filter.module_type}
-
-      # filter to those that satisfy the attribute filters
-      search_list.delete_if{|module_for_possible_exclusion|
-        !module_for_possible_exclusion.matches_attributes_requirement(module_filter.attributes)
-      }
-      Print.verbose "Filtered to modules matching: #{module_filter.attributes.inspect} ~= (n=#{search_list.size})"
-
-      # remove non-options due to conflicts
-      search_list.delete_if{|module_for_possible_exclusion|
-        check_conflicts_with_list(module_for_possible_exclusion, selected_modules)
-      }
-
-      failed_retry = false
-
-      if search_list.length == 0
-        failed_retry = true
-        Print.err 'Could not find a matching module. Please check the scenario specification'
+      more_modules = select_modules(module_filter.module_type, module_filter.attributes, available_modules, selected_modules, recursion_count)
+      if(more_modules == nil)
+        Print.err "Failed to resolve scenario. Re-attempting to resolve scenario (##{recursion_count + 1})..."
+        sleep 1
+        return resolve_module_selection(available_modules, recursion_count + 1)
       else
-        # use from the top of the randomised list
-        selected = search_list[0]
-
-        # add any modules that the selected module requires
-        dependencies = select_required_modules(selected, available_modules, selected_modules)
-        if dependencies == nil
-          failed_retry = true
-        end
+        selected_modules += more_modules
       end
-
-      if failed_retry
-        # bruteforce conflict resolution (could be more intelligent)
-        if self.num_actioned_module_conflicts > 0
-          Print.err "During scenario generation #{num_actioned_module_conflicts} module conflict(s) occured..."
-        else
-          Print.err 'No conflicts, but failed to resolve scenario -- this is a sign there is something wrong in the config (scenario / modules)'
-          Print.err 'Please review the scenario -- something is wrong.'
-          exit
-        end
-        if recursion_count < RETRIES_LIMIT
-          Print.err "Failed to resolve scenario. Re-attempting to resolve scenario (##{recursion_count + 1})..."
-          sleep 1
-          return resolve_module_selection(available_modules, recursion_count + 1)
-        else
-          Print.err "Tried re-randomising #{RETRIES_LIMIT} times. Still no joy."
-          Print.err 'Please review the scenario -- something is wrong.'
-          exit
-        end
-      end
-
-      selected_modules = selected_modules + dependencies + [selected]
-
-      Print.std "Selected module: #{selected.printable_name}"
     end
     selected_modules
+  end
+
+  # returns a list containing a module (plus dependencies recursively) of the module type with the required attributes
+  # modules are selected from the list of available modules and will be checked against previously selected modules for conflicts
+  # returns nil when unable to resolve and the retry limit has not been reached
+  def select_modules(module_type, required_attributes, available_modules, previously_selected_modules, recursion_count)
+    # select based on selected type, access, cve...
+
+    search_list = available_modules.clone
+    # shuffle order of available vulnerabilities
+    search_list.shuffle!
+
+    # remove any module that is not the type of module we are adding (vulnerabilty/service)
+    if module_type != 'any'
+      search_list.delete_if{|x|
+        x.module_type != module_type
+      }
+    end
+
+    # filter to those that satisfy the attribute filters
+    search_list.delete_if{|module_for_possible_exclusion|
+      !module_for_possible_exclusion.matches_attributes_requirement(required_attributes)
+    }
+    Print.verbose "Filtered to modules matching: #{required_attributes.inspect} ~= (n=#{search_list.size})"
+
+    # remove non-options due to conflicts
+    search_list.delete_if{|module_for_possible_exclusion|
+      check_conflicts_with_list(module_for_possible_exclusion, previously_selected_modules)
+    }
+
+    failed_retry = false
+
+    if search_list.length == 0
+      failed_retry = true
+      Print.err 'Could not find a matching module. Please check the scenario specification'
+    else
+      # use from the top of the randomised list
+      selected = search_list[0]
+
+      # add any modules that the selected module requires
+      dependencies = select_required_modules(selected, available_modules, previously_selected_modules)
+      if dependencies == nil
+        failed_retry = true
+      end
+    end
+
+    if failed_retry
+      # bruteforce conflict resolution (could be more intelligent)
+      if self.num_actioned_module_conflicts > 0
+        Print.err "During scenario generation #{num_actioned_module_conflicts} module conflict(s) occured..."
+      else
+        Print.err 'No conflicts, but failed to resolve scenario -- this is a sign there is something wrong in the config (scenario / modules)'
+        Print.err 'Please review the scenario -- something is wrong.'
+        exit
+      end
+      if recursion_count < RETRIES_LIMIT
+        return nil
+      else
+        Print.err "Tried re-randomising #{RETRIES_LIMIT} times. Still no joy."
+        Print.err 'Please review the scenario -- something is wrong.'
+        exit
+      end
+    end
+
+    selected_modules = dependencies + [selected]
+
+    Print.std "Selected module: #{selected.printable_name}"
+
+    selected_modules
+
   end
 
   def check_conflicts_with_list(module_for_possible_exclusion, selected_modules)
@@ -118,39 +137,26 @@ class System
     return nil
   end
 
-  ##### TODO TODO TODO TODO TODO : recursive dependency resolution
-  ##### TODO: REUSE THE MAIN CODE, rather than repeating logic below
+  # TODO: use dependencies in existing modules (update etc)
 
   # returns a list of modules that satisfies all dependencies for the given module
   # returns an empty list if there are no requirements
   # returns nil if unable to fulfil requirements
   def select_required_modules(required_by, available_modules, selected_modules)
     modules_to_add = []
+    if required_by.requires.size > 0
+      Print.verbose "Resolving dependencies for #{required_by.printable_name}"
+    end
+
     required_by.requires.each do |required|
-      available_modules_rnd = available_modules.clone.shuffle!
       Print.verbose "Resolving dependency: #{required.inspect}"
       # checking whether dependency is satisfied by previously selected modules
       existing = resolve_dependency(required, selected_modules)
       if existing != nil
         Print.verbose "Dependency satisfied by previously selected module: #{existing.printable_name}"
       else
-        # checking whether dependency can be satisfied by any available modules
-        available_modules_rnd.delete_if{|module_for_possible_exclusion|
-          !module_for_possible_exclusion.matches_attributes_requirement(required)
-        }
-        # removing any potential conflicts
-        available_modules_rnd.delete_if{|module_for_possible_exclusion|
-          check_conflicts_with_list(module_for_possible_exclusion, selected_modules)
-        }
-        Print.verbose "Filtering to modules that can satisfy the dependency, without conflicts (->#{available_modules_rnd.size})"
-        if available_modules_rnd.size > 0
-          to_add = available_modules_rnd[0]
-          Print.std "Adding module #{to_add.printable_name} to satisfy dependency of #{required_by.printable_name}"
-          modules_to_add.push to_add
-        else
-          Print.err "Could not satisfy dependency of #{required_by.printable_name}"
-          return nil
-        end
+        Print.verbose 'Adding required modules...'
+        modules_to_add += select_modules('any', required, available_modules, modules_to_add, 0)
       end
     end
     modules_to_add

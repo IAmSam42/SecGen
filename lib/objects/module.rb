@@ -20,7 +20,7 @@ class Module
     self.conflicts = []
     self.requires = []
     self.attributes = {}
-    # self.attributes["module_type"] = module_type # add as an attribute for filtering
+    # self.attributes['module_type'] = module_type # add as an attribute for filtering
   end
 
   # @return [Object] a string for console output
@@ -88,12 +88,8 @@ class Module
   end
 
   def matches_attributes_requirement(required)
-    # Print.err "Checking if this module (#{self.module_path}) matches #{required.inspect}"
     all_conditions_met = true
     required.keys.each do |require_key|
-      # Print.err "BBB #{require_key.inspect}"
-      # Print.err "CC #{self.inspect}"
-
       key_matched = false
 
       if self.attributes["#{require_key}"] != nil
@@ -101,8 +97,6 @@ class Module
         self.attributes["#{require_key}"].each do |value|
           # for each value in the required list
           required["#{require_key}"].each do |required_value|
-            # Print.verbose "comparing #{value} and #{required_value}"
-
             if Regexp.new(required_value).match(value)
               key_matched = true
             end
@@ -114,7 +108,6 @@ class Module
         return false
       end
     end
-    # Print.err "returning #{all_conditions_met}"
     all_conditions_met
   end
 
