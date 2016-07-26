@@ -136,9 +136,7 @@ class System
     # couldn't satisfy requirement!
     return nil
   end
-
-  # TODO: use dependencies in existing modules (update etc)
-
+  
   # returns a list of modules that satisfies all dependencies for the given module
   # returns an empty list if there are no requirements
   # returns nil if unable to fulfil requirements
